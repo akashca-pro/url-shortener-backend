@@ -19,35 +19,43 @@ A robust, production-ready URL shortener API built with Express.js, TypeScript, 
 - **Authentication** - Secure JWT-based auth with HTTP-only cookies
 - **URL Shortening** - Generate short URLs with auto-generated or custom codes
 - **Analytics** - Track click counts for each shortened URL
+- **API Documentation** - Interactive Swagger UI with OpenAPI 3.0 spec
+- **Dependency Injection** - Inversify-based DI for clean architecture
 - **Input Validation** - Request validation using Zod schemas
 - **Structured Logging** - Production-grade logging with Pino
 - **Security Hardened** - Helmet, CORS, bcrypt password hashing
 
 ## Tech Stack
 
-| Category      | Technology           |
-| ------------- | -------------------- |
-| Runtime       | Node.js (v18+)       |
-| Framework     | Express.js           |
-| Language      | TypeScript           |
-| Database      | MongoDB + Mongoose   |
-| Auth          | JWT (jsonwebtoken)   |
-| Validation    | Zod                  |
-| Security      | Helmet, bcrypt, CORS |
-| Logging       | Pino + pino-pretty   |
-| ID Generation | nanoid               |
+| Category      | Technology                   |
+| ------------- | ---------------------------- |
+| Runtime       | Node.js (v18+)               |
+| Framework     | Express.js                   |
+| Language      | TypeScript                   |
+| Database      | MongoDB + Mongoose           |
+| Auth          | JWT (jsonwebtoken)           |
+| DI Container  | Inversify                    |
+| Validation    | Zod                          |
+| API Docs      | Swagger (swagger-ui-express) |
+| Security      | Helmet, bcrypt, CORS         |
+| Logging       | Pino + pino-pretty           |
+| ID Generation | nanoid                       |
 
 ## Architecture
 
-The application follows a **layered architecture** pattern for clean separation of concerns:
+The application follows a **layered architecture** pattern with **Inversify dependency injection**. All layers depend on interfaces, not concrete implementations:
 
 ```
 ┌─────────────────────────────────────────────┐
+│           DI Container (Inversify)          │
+├─────────────────────────────────────────────┤
 │             Presentation Layer              │
 │    (Controllers, Routes, Middlewares)       │
+│           ↓ IAuthService, IUrlService       │
 ├─────────────────────────────────────────────┤
 │              Service Layer                  │
 │         (Business Logic, DTOs)              │
+│    ↓ IUserRepo, IUrlRepo, IPasswordHasher   │
 ├─────────────────────────────────────────────┤
 │            Repository Layer                 │
 │      (Data Access, Mongoose Models)         │
@@ -105,6 +113,17 @@ Create a `.env` file based on `.env.example`:
 | `CLIENT_URL`              | Frontend URL for CORS              | `http://localhost:5173`                   |
 | `BASE_URL`                | Base URL for generated short links | `http://localhost:9000`                   |
 
+## API Documentation
+
+Interactive API documentation is available via Swagger UI:
+
+| Endpoint         | Description                    |
+| ---------------- | ------------------------------ |
+| `/api/docs`      | Interactive Swagger UI         |
+| `/api/docs.json` | Download OpenAPI 3.0 JSON spec |
+
+Access the documentation at: `http://localhost:9000/api/docs`
+
 ## API Reference
 
 ### Authentication
@@ -161,9 +180,10 @@ Create a `.env` file based on `.env.example`:
 
 ```
 src/
-├── config/           # App configuration
+├── config/           # App configuration + Swagger setup
 ├── const/            # Constants and enums
 ├── db/               # Database connection and models
+├── di/               # Inversify DI container + types
 ├── dtos/             # Data Transfer Objects
 ├── presentation/     # Controllers, routes, middlewares
 ├── providers/        # External service integrations
