@@ -1,0 +1,69 @@
+import express, { Request, Response, NextFunction } from 'express';
+import '@/types/express.type';
+import helmet from 'helmet';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import { config } from '@/config';
+import { connectDB } from '@/config/db';
+import logger from '@/utils/logger';
+import { globalErrorHandler, notFound } from '@/utils/errorHandlers';
+import { authRouter } from '@/presentation/routes/auth';
+import { urlRouter } from '@/presentation/routes/urls';
+import { urlController } from '@/presentation/controllers/urlController';
+
+const app = express();
+
+// Middlewares
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(helmet());
+
+app.use(
+    cors({
+        origin: config.CLIENT_URL,
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        exposedHeaders: ['Set-Cookie'],
+    })
+);
+
+// Logging middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+    logger.info(`${req.method} ${req.url}`);
+    next();
+});
+
+// Health check
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'OK' });
+});
+
+app.get('/:shortCode', urlController.redirect);
+
+// API Routes
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/urls', urlRouter);
+
+// 404 Handler
+app.use(notFound);
+
+// Global Error Handler
+app.use(globalErrorHandler);
+
+const startServer = async () => {
+    try {
+        await connectDB();
+        app.listen(config.PORT, () => {
+            logger.info(
+                `${config.SERVICE_NAME} running on port ${config.PORT}`
+            );
+        });
+    } catch (error) {
+        logger.error('Failed to start server:', error);
+        process.exit(1);
+    }
+};
+
+startServer();

@@ -1,0 +1,109 @@
+import { NextFunction, Request, Response } from 'express';
+import { authService } from '@/services/auth.service';
+import { AUTH_SUCCESS } from '@/const/success.const';
+import { AUTH_ERRORS } from '@/const/errors.const';
+import HTTP_STATUS from '@/utils/httpStatusCodes';
+import ResponseHandler from '@/utils/responseHandler';
+import { setCookie, clearCookie } from '@/utils/cookie';
+import { APP_LABELS } from '@/const/labels.const';
+import logger from '@/utils/logger';
+
+// 7 days in milliseconds
+const TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+
+export const authController = {
+    signup: async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            logger.info('Signup request received');
+            const input = req.validated?.body;
+
+            const response = await authService.signup(input);
+
+            if (!response.success) {
+                logger.error({ error: response.errorMessage }, 'Signup failed');
+                return ResponseHandler.error(
+                    res,
+                    response.errorMessage || 'Signup failed',
+                    response.errorMessage === AUTH_ERRORS.USER_ALREADY_EXISTS
+                        ? HTTP_STATUS.CONFLICT
+                        : HTTP_STATUS.BAD_REQUEST
+                );
+            }
+
+            logger.info({ email: input.email }, 'Signup successful');
+
+            // Set cookie
+            setCookie(
+                res,
+                APP_LABELS.ACCESS_TOKEN,
+                response.data!.accessToken,
+                TOKEN_EXPIRY_MS
+            );
+
+            return ResponseHandler.success(
+                res,
+                AUTH_SUCCESS.USER_CREATED,
+                HTTP_STATUS.CREATED,
+                response.data?.user
+            );
+        } catch (error) {
+            logger.error(error);
+            next(error);
+        }
+    },
+
+    login: async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            logger.info('Login request received');
+            const input = req.validated?.body;
+
+            const response = await authService.login(input);
+
+            if (!response.success) {
+                logger.error({ error: response.errorMessage }, 'Login failed');
+                return ResponseHandler.error(
+                    res,
+                    response.errorMessage || 'Login failed',
+                    HTTP_STATUS.UNAUTHORIZED
+                );
+            }
+
+            logger.info({ email: input.email }, 'Login successful');
+
+            // Set cookie
+            setCookie(
+                res,
+                APP_LABELS.ACCESS_TOKEN,
+                response.data!.accessToken,
+                TOKEN_EXPIRY_MS
+            );
+
+            return ResponseHandler.success(
+                res,
+                AUTH_SUCCESS.LOGIN_SUCCESSFUL,
+                HTTP_STATUS.OK,
+                response.data?.user
+            );
+        } catch (error) {
+            logger.error(error);
+            next(error);
+        }
+    },
+
+    logout: async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            logger.info('Logout request received');
+
+            clearCookie(res, APP_LABELS.ACCESS_TOKEN);
+
+            return ResponseHandler.success(
+                res,
+                AUTH_SUCCESS.LOGOUT_SUCCESSFUL,
+                HTTP_STATUS.OK
+            );
+        } catch (error) {
+            logger.error(error);
+            next(error);
+        }
+    },
+};
