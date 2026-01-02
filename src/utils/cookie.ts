@@ -11,7 +11,7 @@ export const setCookie = (
     res: Response,
     name: string,
     value: string,
-    maxAgeMs: number = 7 * 24 * 60 * 60 * 1000 // 7 days default
+    maxAgeMs: number = 1 * 24 * 60 * 60 * 1000 // 1 day default
 ) => {
     res.cookie(name, value, {
         ...getCookieOptions(),

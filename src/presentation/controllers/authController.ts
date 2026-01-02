@@ -8,8 +8,8 @@ import { setCookie, clearCookie } from '@/utils/cookie';
 import { APP_LABELS } from '@/const/labels.const';
 import logger from '@/utils/logger';
 
-// 7 days in milliseconds
-const TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+// 1 day in milliseconds
+const TOKEN_EXPIRY_MS = 1 * 24 * 60 * 60 * 1000;
 
 export const authController = {
     signup: async (req: Request, res: Response, next: NextFunction) => {
