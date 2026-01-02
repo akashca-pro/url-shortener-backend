@@ -70,7 +70,6 @@ export const authController = {
 
             logger.info({ email: input.email }, 'Login successful');
 
-            // Set cookie
             setCookie(
                 res,
                 APP_LABELS.ACCESS_TOKEN,
