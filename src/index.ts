@@ -4,8 +4,10 @@ import '@/types/express.type';
 import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import swaggerUi from 'swagger-ui-express';
 import { config } from '@/config';
 import { connectDB } from '@/config/db';
+import { swaggerSpec } from '@/config/swagger';
 import logger from '@/utils/logger';
 import { globalErrorHandler, notFound } from '@/utils/errorHandlers';
 import { authRouter } from '@/presentation/routes/auth';
@@ -46,6 +48,19 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK' });
 });
 
+// Swagger Documentation
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'URL Shortener API Documentation',
+}));
+
+// Swagger JSON endpoint for download
+app.get('/api/docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="swagger.json"');
+    res.json(swaggerSpec);
+});
+
 app.get('/:shortCode', urlController.redirect);
 
 // API Routes
@@ -65,6 +80,7 @@ const startServer = async () => {
             logger.info(
                 `${config.SERVICE_NAME} running on port ${config.PORT}`
             );
+            logger.info(`API Docs available at ${config.BASE_URL}/api/docs`);
         });
     } catch (error) {
         logger.error('Failed to start server:', error);
