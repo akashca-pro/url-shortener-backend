@@ -1,78 +1,201 @@
 # URL Shortener Backend
 
-Authenticated URL shortener service built with Express.js, TypeScript, and MongoDB.
+A robust, production-ready URL shortener API built with Express.js, TypeScript, and MongoDB. Features JWT authentication, clean layered architecture, and comprehensive security measures.
+
+## Table of Contents
+
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [API Reference](#api-reference)
+- [Project Structure](#project-structure)
+- [Security](#security)
+- [Docker](#docker)
 
 ## Features
 
-- **Authentication**: Secure signup and login using JWT (stored in HTTP-only cookies).
-- **URL Shortening**: Generate short URLs for long links.
-- **Custom Codes**: Option to provide custom aliases for URLs.
-- **Analytics**: Track click counts for each shortened URL.
-- **Security**:
-  - Password hashing with Bcrypt
-  - Helmet for HTTP headers
-  - CORS configuration
-  - Input validation with Zod
-- **Architecture**: Layered architecture (Controllers, Services, Repositories, Providers).
+- **Authentication** - Secure JWT-based auth with HTTP-only cookies
+- **URL Shortening** - Generate short URLs with auto-generated or custom codes
+- **Analytics** - Track click counts for each shortened URL
+- **Input Validation** - Request validation using Zod schemas
+- **Structured Logging** - Production-grade logging with Pino
+- **Security Hardened** - Helmet, CORS, bcrypt password hashing
 
 ## Tech Stack
 
-- Node.js & Express.js
-- TypeScript
-- MongoDB & Mongoose
-- JSON Web Token (JWT)
-- Bcrypt
-- Zod
-- Pino Logger
+| Category      | Technology           |
+| ------------- | -------------------- |
+| Runtime       | Node.js (v18+)       |
+| Framework     | Express.js           |
+| Language      | TypeScript           |
+| Database      | MongoDB + Mongoose   |
+| Auth          | JWT (jsonwebtoken)   |
+| Validation    | Zod                  |
+| Security      | Helmet, bcrypt, CORS |
+| Logging       | Pino + pino-pretty   |
+| ID Generation | nanoid               |
 
-## Prerequisites
+## Architecture
 
-- Node.js (v18+)
-- MongoDB (Local or Atlas)
+The application follows a **layered architecture** pattern for clean separation of concerns:
 
-## Setup
+```
+┌─────────────────────────────────────────────┐
+│             Presentation Layer              │
+│    (Controllers, Routes, Middlewares)       │
+├─────────────────────────────────────────────┤
+│              Service Layer                  │
+│         (Business Logic, DTOs)              │
+├─────────────────────────────────────────────┤
+│            Repository Layer                 │
+│      (Data Access, Mongoose Models)         │
+├─────────────────────────────────────────────┤
+│             Provider Layer                  │
+│   (External Services: JWT, Hashing, etc.)   │
+└─────────────────────────────────────────────┘
+```
 
-1. **Install dependencies**
+## Getting Started
 
-   ```bash
-   npm install
-   ```
+### Prerequisites
 
-2. **Environment Variables**
-   Copy `.env.example` to `.env` and update the values:
+- Node.js v18 or higher
+- MongoDB (local instance or MongoDB Atlas)
 
-   ```bash
-   cp .env.example .env
-   ```
+### Installation
 
-   Ensure `CLIENT_URL` matches your frontend URL (e.g., `http://localhost:5173`).
+```bash
+# Clone the repository
+git clone <repo-url>
+cd url-shortener/backend
 
-3. **Run Development Server**
+# Install dependencies
+npm install
 
-   ```bash
-   npm run dev
-   ```
+# Copy environment file
+cp .env.example .env
+# Edit .env with your configuration
 
-4. **Build & Start Production**
-   ```bash
-   npm run build
-   npm start
-   ```
+# Start development server
+npm run dev
+```
 
-## API Endpoints
+### Scripts
 
-### Auth
+| Command         | Description                              |
+| --------------- | ---------------------------------------- |
+| `npm run dev`   | Start development server with hot reload |
+| `npm run build` | Build TypeScript to JavaScript           |
+| `npm start`     | Run production build                     |
+| `npm run lint`  | Run ESLint                               |
 
-- `POST /api/v1/auth/signup` - Register a new user
-- `POST /api/v1/auth/login` - Login user
-- `DELETE /api/v1/auth/logout` - Logout user (requires auth)
+## Environment Variables
+
+Create a `.env` file based on `.env.example`:
+
+| Variable                  | Description                        | Default                                   |
+| ------------------------- | ---------------------------------- | ----------------------------------------- |
+| `PORT`                    | Server port                        | `9000`                                    |
+| `SERVICE_NAME`            | Service identifier for logs        | `url-shortener-backend`                   |
+| `DATABASE_URL`            | MongoDB connection string          | `mongodb://localhost:27017/url-shortener` |
+| `JWT_ACCESS_TOKEN_SECRET` | Secret key for JWT signing         | -                                         |
+| `JWT_ACCESS_TOKEN_EXPIRY` | JWT token expiration               | `1d`                                      |
+| `CLIENT_URL`              | Frontend URL for CORS              | `http://localhost:5173`                   |
+| `BASE_URL`                | Base URL for generated short links | `http://localhost:9000`                   |
+
+## API Reference
+
+### Authentication
+
+| Method   | Endpoint              | Description       | Auth |
+| -------- | --------------------- | ----------------- | ---- |
+| `POST`   | `/api/v1/auth/signup` | Register new user | No   |
+| `POST`   | `/api/v1/auth/login`  | Login user        | No   |
+| `DELETE` | `/api/v1/auth/logout` | Logout user       | Yes  |
+
+#### Signup Request
+
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "SecurePass123!"
+}
+```
+
+#### Login Request
+
+```json
+{
+  "email": "john@example.com",
+  "password": "SecurePass123!"
+}
+```
 
 ### URLs
 
-- `POST /api/v1/urls/shorten` - Create a short URL (requires auth)
-- `GET /api/v1/urls` - Get all URLs for logged-in user (requires auth)
-- `DELETE /api/v1/urls/:id` - Delete a URL (requires auth)
+| Method   | Endpoint               | Description      | Auth |
+| -------- | ---------------------- | ---------------- | ---- |
+| `POST`   | `/api/v1/urls/shorten` | Create short URL | Yes  |
+| `GET`    | `/api/v1/urls`         | Get user's URLs  | Yes  |
+| `DELETE` | `/api/v1/urls/:id`     | Delete a URL     | Yes  |
+
+#### Shorten URL Request
+
+```json
+{
+  "originalUrl": "https://example.com/very/long/url",
+  "customCode": "my-custom-code" // optional
+}
+```
 
 ### Redirection
 
-- `GET /:shortCode` - Redirect to the original URL
+| Method | Endpoint      | Description              | Auth |
+| ------ | ------------- | ------------------------ | ---- |
+| `GET`  | `/:shortCode` | Redirect to original URL | No   |
+
+## Project Structure
+
+```
+src/
+├── config/           # App configuration
+├── const/            # Constants and enums
+├── db/               # Database connection and models
+├── dtos/             # Data Transfer Objects
+├── presentation/     # Controllers, routes, middlewares
+├── providers/        # External service integrations
+├── repos/            # Data access layer
+├── services/         # Business logic
+├── types/            # TypeScript type definitions
+├── utils/            # Utility functions
+├── validation/       # Zod schemas
+└── index.ts          # Application entry point
+```
+
+## Security
+
+- **Password Hashing**: Bcrypt with salt rounds
+- **JWT Tokens**: Stored in HTTP-only, secure cookies
+- **HTTP Headers**: Secured with Helmet
+- **CORS**: Configured for specific origins
+- **Input Validation**: All inputs validated with Zod
+- **Error Handling**: Centralized error handling without leaking internals
+
+## Docker
+
+Build and run with Docker:
+
+```bash
+# Build image
+docker build -t url-shortener-backend .
+
+# Run container
+docker run -p 9000:9000 --env-file .env url-shortener-backend
+```
+
+## License
+
+ISC
