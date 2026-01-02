@@ -1,5 +1,7 @@
+import { injectable, inject } from 'inversify';
 import { NextFunction, Request, Response } from 'express';
-import { authService } from '@/services/auth.service';
+import { TYPES } from '@/di/types';
+import { IAuthService } from '@/services/interfaces/auth.service.interface';
 import { AUTH_SUCCESS } from '@/const/success.const';
 import { AUTH_ERRORS } from '@/const/errors.const';
 import HTTP_STATUS from '@/utils/httpStatusCodes';
@@ -11,13 +13,22 @@ import logger from '@/utils/logger';
 // 1 day in milliseconds
 const TOKEN_EXPIRY_MS = 1 * 24 * 60 * 60 * 1000;
 
-export const authController = {
-    signup: async (req: Request, res: Response, next: NextFunction) => {
+@injectable()
+export class AuthController {
+    readonly #authService: IAuthService;
+
+    constructor(
+        @inject(TYPES.IAuthService) authService: IAuthService
+    ) {
+        this.#authService = authService;
+    }
+
+    signup = async (req: Request, res: Response, next: NextFunction) => {
         try {
             logger.info('Signup request received');
             const input = req.validated?.body;
 
-            const response = await authService.signup(input);
+            const response = await this.#authService.signup(input);
 
             if (!response.success) {
                 logger.error({ error: response.errorMessage }, 'Signup failed');
@@ -50,14 +61,14 @@ export const authController = {
             logger.error(error);
             next(error);
         }
-    },
+    };
 
-    login: async (req: Request, res: Response, next: NextFunction) => {
+    login = async (req: Request, res: Response, next: NextFunction) => {
         try {
             logger.info('Login request received');
             const input = req.validated?.body;
 
-            const response = await authService.login(input);
+            const response = await this.#authService.login(input);
 
             if (!response.success) {
                 logger.error({ error: response.errorMessage }, 'Login failed');
@@ -87,9 +98,9 @@ export const authController = {
             logger.error(error);
             next(error);
         }
-    },
+    };
 
-    logout: async (req: Request, res: Response, next: NextFunction) => {
+    logout = async (req: Request, res: Response, next: NextFunction) => {
         try {
             logger.info('Logout request received');
 
@@ -104,5 +115,5 @@ export const authController = {
             logger.error(error);
             next(error);
         }
-    },
-};
+    };
+}

@@ -1,10 +1,12 @@
+import { injectable } from 'inversify';
 import { IUrl } from '@/db/interfaces/url.interface';
 import { UrlModel } from '@/db/models/url.model';
 import { CreateUrlRequestDTO } from '@/dtos/url/createUrl.dto';
 import { IUrlRepo } from '@/repos/interfaces/url.repo.interface';
 import logger from '@/utils/logger';
 
-class UrlRepo implements IUrlRepo {
+@injectable()
+export class UrlRepo implements IUrlRepo {
     async createUrl(
         data: CreateUrlRequestDTO & { shortCode: string; userId: string }
     ): Promise<IUrl | null> {
@@ -81,4 +83,3 @@ class UrlRepo implements IUrlRepo {
     }
 }
 
-export const urlRepo = new UrlRepo();

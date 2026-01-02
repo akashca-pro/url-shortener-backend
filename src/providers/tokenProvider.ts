@@ -1,4 +1,5 @@
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
+import { injectable } from 'inversify';
 import { config } from '@/config';
 import { ITokenPayload } from '@/types/token.type';
 import { ITokenProvider } from '@/providers/interfaces/tokenProvider.interface';
@@ -6,19 +7,20 @@ import { ITokenProvider } from '@/providers/interfaces/tokenProvider.interface';
 /**
  * Provider for managing JWT authentication tokens.
  */
+@injectable()
 export class JwtTokenProvider implements ITokenProvider {
-    private _accessSecret: Secret = config.JWT_ACCESS_TOKEN_SECRET;
-    private _accessExpiry = config.JWT_ACCESS_TOKEN_EXPIRY;
+    #accessSecret: Secret = config.JWT_ACCESS_TOKEN_SECRET;
+    #accessExpiry = config.JWT_ACCESS_TOKEN_EXPIRY;
 
     generateAccessToken(payload: ITokenPayload): string {
-        return jwt.sign(payload, this._accessSecret, {
-            expiresIn: this._accessExpiry,
+        return jwt.sign(payload, this.#accessSecret, {
+            expiresIn: this.#accessExpiry,
         } as SignOptions);
     }
 
     verifyAccessToken(token: string): ITokenPayload | null {
         try {
-            const decoded = jwt.verify(token, this._accessSecret) as ITokenPayload;
+            const decoded = jwt.verify(token, this.#accessSecret) as ITokenPayload;
             return decoded;
         } catch {
             return null;
@@ -26,5 +28,3 @@ export class JwtTokenProvider implements ITokenProvider {
     }
 }
 
-// Export singleton instance
-export const tokenProvider = new JwtTokenProvider();

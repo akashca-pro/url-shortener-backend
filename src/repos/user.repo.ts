@@ -1,10 +1,12 @@
+import { injectable } from 'inversify';
 import { IUser } from '@/db/interfaces/user.interface';
 import { UserModel } from '@/db/models/user.model';
 import { SignupRequestDTO } from '@/dtos/auth/signup.dto';
 import { IUserRepo } from '@/repos/interfaces/user.repo.interface';
 import logger from '@/utils/logger';
 
-class UserRepo implements IUserRepo {
+@injectable()
+export class UserRepo implements IUserRepo {
     async createUser(data: SignupRequestDTO): Promise<IUser | null> {
         try {
             const user = await UserModel.create({
@@ -40,4 +42,3 @@ class UserRepo implements IUserRepo {
     }
 }
 
-export const userRepo = new UserRepo();

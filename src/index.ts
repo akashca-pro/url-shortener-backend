@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import express, { Request, Response, NextFunction } from 'express';
 import '@/types/express.type';
 import helmet from 'helmet';
@@ -9,9 +10,14 @@ import logger from '@/utils/logger';
 import { globalErrorHandler, notFound } from '@/utils/errorHandlers';
 import { authRouter } from '@/presentation/routes/auth';
 import { urlRouter } from '@/presentation/routes/urls';
-import { urlController } from '@/presentation/controllers/urlController';
+import { container } from '@/di/container';
+import { TYPES } from '@/di/types';
+import { UrlController } from '@/presentation/controllers/urlController';
 
 const app = express();
+
+// Get URL controller from container for redirect route
+const urlController = container.get<UrlController>(TYPES.UrlController);
 
 // Middlewares
 app.use(express.json());

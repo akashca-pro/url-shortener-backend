@@ -1,14 +1,25 @@
+import { injectable, inject } from 'inversify';
+import { TYPES } from '@/di/types';
 import { IUrlService } from '@/services/interfaces/url.service.interface';
 import { ResponseDTO } from '@/dtos/Response.dto';
 import { CreateUrlRequestDTO, CreateUrlResponseDTO } from '@/dtos/url/createUrl.dto';
 import { GetUrlsResponseDTO, UrlItemDTO } from '@/dtos/url/getUrls.dto';
-import { urlRepo } from '@/repos/url.repo';
+import { IUrlRepo } from '@/repos/interfaces/url.repo.interface';
 import { URL_ERRORS } from '@/const/errors.const';
 import { generateShortCode } from '@/utils/shortCodeGenerator';
 import { config } from '@/config';
 import logger from '@/utils/logger';
 
-class UrlService implements IUrlService {
+@injectable()
+export class UrlService implements IUrlService {
+    readonly #urlRepo: IUrlRepo;
+
+    constructor(
+        @inject(TYPES.IUrlRepo) urlRepo: IUrlRepo
+    ) {
+        this.#urlRepo = urlRepo;
+    }
+
     async createShortUrl(
         userId: string,
         req: CreateUrlRequestDTO
@@ -21,7 +32,7 @@ class UrlService implements IUrlService {
         // Use custom code if provided, otherwise generate one
         if (req.customCode) {
             // Check if custom code already exists
-            const exists = await urlRepo.isShortCodeExists(req.customCode);
+            const exists = await this.#urlRepo.isShortCodeExists(req.customCode);
             if (exists) {
                 logger.error(`[URL-SERVICE] ${method} custom code already exists`);
                 return {
@@ -38,7 +49,7 @@ class UrlService implements IUrlService {
             
             do {
                 shortCode = generateShortCode();
-                const exists = await urlRepo.isShortCodeExists(shortCode);
+                const exists = await this.#urlRepo.isShortCodeExists(shortCode);
                 if (!exists) break;
                 attempts++;
             } while (attempts < maxAttempts);
@@ -54,7 +65,7 @@ class UrlService implements IUrlService {
         }
 
         // Create URL
-        const url = await urlRepo.createUrl({
+        const url = await this.#urlRepo.createUrl({
             originalUrl: req.originalUrl,
             shortCode,
             userId,
@@ -88,7 +99,7 @@ class UrlService implements IUrlService {
         const method = 'UrlService.getUserUrls';
         logger.info(`[URL-SERVICE] ${method} started`);
 
-        const urls = await urlRepo.getUrlsByUserId(userId);
+        const urls = await this.#urlRepo.getUrlsByUserId(userId);
 
         const urlItems: UrlItemDTO[] = urls.map((url) => ({
             id: url._id.toString(),
@@ -114,7 +125,7 @@ class UrlService implements IUrlService {
         const method = 'UrlService.getOriginalUrl';
         logger.info(`[URL-SERVICE] ${method} started`);
 
-        const url = await urlRepo.getUrlByShortCode(shortCode);
+        const url = await this.#urlRepo.getUrlByShortCode(shortCode);
 
         if (!url) {
             logger.error(`[URL-SERVICE] ${method} URL not found`);
@@ -126,7 +137,7 @@ class UrlService implements IUrlService {
         }
 
         // Increment click count asynchronously 
-        urlRepo.incrementClickCount(url._id.toString()).catch((err) => {
+        this.#urlRepo.incrementClickCount(url._id.toString()).catch((err) => {
             logger.error('Failed to increment click count:', err);
         });
 
@@ -143,7 +154,7 @@ class UrlService implements IUrlService {
         logger.info(`[URL-SERVICE] ${method} started`);
 
         // Get URL and verify ownership
-        const url = await urlRepo.getUrlById(urlId);
+        const url = await this.#urlRepo.getUrlById(urlId);
 
         if (!url) {
             logger.error(`[URL-SERVICE] ${method} URL not found`);
@@ -163,7 +174,7 @@ class UrlService implements IUrlService {
             };
         }
 
-        const deleted = await urlRepo.deleteUrl(urlId);
+        const deleted = await this.#urlRepo.deleteUrl(urlId);
 
         if (!deleted) {
             logger.error(`[URL-SERVICE] ${method} failed to delete URL`);
@@ -182,5 +193,3 @@ class UrlService implements IUrlService {
         };
     }
 }
-
-export const urlService = new UrlService();

@@ -1,19 +1,30 @@
+import { injectable, inject } from 'inversify';
 import { NextFunction, Request, Response } from 'express';
-import { urlService } from '@/services/url.service';
+import { TYPES } from '@/di/types';
+import { IUrlService } from '@/services/interfaces/url.service.interface';
 import { URL_SUCCESS } from '@/const/success.const';
 import { URL_ERRORS } from '@/const/errors.const';
 import HTTP_STATUS from '@/utils/httpStatusCodes';
 import ResponseHandler from '@/utils/responseHandler';
 import logger from '@/utils/logger';
 
-export const urlController = {
-    create: async (req: Request, res: Response, next: NextFunction) => {
+@injectable()
+export class UrlController {
+    readonly #urlService: IUrlService;
+
+    constructor(
+        @inject(TYPES.IUrlService) urlService: IUrlService
+    ) {
+        this.#urlService = urlService;
+    }
+
+    create = async (req: Request, res: Response, next: NextFunction) => {
         try {
             logger.info('Create short URL request received');
             const input = req.validated?.body;
             const userId = req.userId!;
 
-            const response = await urlService.createShortUrl(userId, input);
+            const response = await this.#urlService.createShortUrl(userId, input);
 
             if (!response.success) {
                 logger.error({ error: response.errorMessage }, 'Create URL failed');
@@ -38,14 +49,14 @@ export const urlController = {
             logger.error(error);
             next(error);
         }
-    },
+    };
 
-    getAll: async (req: Request, res: Response, next: NextFunction) => {
+    getAll = async (req: Request, res: Response, next: NextFunction) => {
         try {
             logger.info('Get all URLs request received');
             const userId = req.userId!;
 
-            const response = await urlService.getUserUrls(userId);
+            const response = await this.#urlService.getUserUrls(userId);
 
             if (!response.success) {
                 logger.error({ error: response.errorMessage }, 'Get URLs failed');
@@ -66,15 +77,15 @@ export const urlController = {
             logger.error(error);
             next(error);
         }
-    },
+    };
 
-    delete: async (req: Request, res: Response, next: NextFunction) => {
+    delete = async (req: Request, res: Response, next: NextFunction) => {
         try {
             logger.info('Delete URL request received');
             const urlId = req.validated?.params?.id;
             const userId = req.userId!;
 
-            const response = await urlService.deleteUrl(userId, urlId);
+            const response = await this.#urlService.deleteUrl(userId, urlId);
 
             if (!response.success) {
                 logger.error({ error: response.errorMessage }, 'Delete URL failed');
@@ -96,14 +107,14 @@ export const urlController = {
             logger.error(error);
             next(error);
         }
-    },
+    };
 
-    redirect: async (req: Request, res: Response, next: NextFunction) => {
+    redirect = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { shortCode } = req.params;
             logger.info({ shortCode }, 'Redirect request received');
 
-            const response = await urlService.getOriginalUrl(shortCode);
+            const response = await this.#urlService.getOriginalUrl(shortCode);
 
             if (!response.success || !response.data) {
                 logger.error({ error: response.errorMessage }, 'URL not found');
@@ -121,5 +132,5 @@ export const urlController = {
             logger.error(error);
             next(error);
         }
-    },
-};
+    };
+}
